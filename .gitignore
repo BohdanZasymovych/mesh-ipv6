@@ -1,0 +1,75 @@
+# Build output (nRF Connect SDK / Zephyr / CMake)
+build/
+build_*/
+_build/
+out/
+twister-out*/
+sysbuild/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# West workspace (fetched dependencies)
+.west/
+bootloader/
+modules/
+nrf/
+nrfxlib/
+test/
+tools/
+zephyr/
+
+# Firmware and compiler artifacts
+*.hex
+*.bin
+*.elf
+*.uf2
+*.map
+*.lst
+*.o
+*.a
+*.d
+*.su
+
+# Matter / OpenThread credentials and local state
+*.pem
+*.key
+*.der
+*.p12
+chip_*.ini
+*.dataset
+otbr-data/
+
+# Packet captures (remove if you want to commit them)
+*.pcap
+*.pcapng
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and environment files
+*.log
+.env
+.env.*
+!.env.example
+
+# AI context
+ai-context/
