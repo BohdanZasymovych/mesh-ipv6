@@ -1,56 +1,67 @@
 # IPv6 Mesh
 
-A computer networks course project that builds an IPv6 mesh network (OpenThread over IEEE 802.15.4) on nRF52840 boards.
+A computer networks course project that builds an IPv6 mesh network (OpenThread over IEEE 802.15.4) on nRF52840 boards (nice!nano / `promicro_nrf52840`).
 
-## Flashing a board
+A laptop with one board acts as a Thread Border Router, connects the mesh to the normal network and switches an IKEA GRILLPLATS Matter plug on and off over IPv6: **[docs/border-router.md](docs/border-router.md)**.
 
-The board flashes over USB with `.uf2` files.
+## Repository layout
 
-1. Short **RST to GND twice quickly**. A USB drive named `NICENANO` appears.
-2. Copy the `.uf2` file onto the drive.
-3. The board reboots into the new firmware on its own, and the drive disappears.
-
-
-## Opening board shell
-
-The board's shell runs over USB serial. Open it with `picocom` or any other serial terminal.
-
-Find the name of the port:
-```bash
-ls /dev/ttyACM*
+```
+ot-node/        firmware for mesh nodes: OpenThread CLI over USB (copy of the NCS cli sample)
+ot-rcp/         firmware for the Border Router radio (copy of the NCS coprocessor sample)
+compose.yaml    OpenThread Border Router in Docker, uses an ot-rcp board
+scripts/        build, flash, Border Router and Matter plug helpers
+docs/           border-router.md: laptop as Border Router + IKEA Matter plug
+.env.example    per-machine settings, copy to .env
 ```
 
-*The board shows up as `/dev/ttyACM0` (or `ttyACM1`, … when several boards are connected)*
+Each firmware folder is a copy of the Nordic sample plus our files in `boards/promicro_nrf52840_nrf52840_uf2.*`.
 
-Open the serial shell:
+## Requirements
+
+- Linux (tested on Pop!_OS 24.04, which is based on Ubuntu 24.04)
+- [nRF Connect SDK](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/installation.html) **v3.4.2**, installed with nRF Connect for VS Code or `nrfutil sdk-manager`. The scripts expect it in `~/ncs/v3.4.2`; set `NCS_DIR` in `.env` if it is somewhere else
+- Your user in the `dialout` group (`uucp` on Arch) for serial access
+- For the Border Router: see [docs/border-router.md](docs/border-router.md)
+
+Check a laptop with `scripts/doctor.sh`. It lists what is missing and how to fix it.
+
+## Building and flashing
+
+Open a terminal in the NCS v3.4.2 toolchain environment (so that `west` works), then from the repo root:
+
 ```bash
-picocom /dev/ttyACM0
+scripts/build.sh ot-node      # or ot-rcp
+scripts/flash.sh ot-node      # then double-tap RST to GND when asked
 ```
 
-*Use Ctrl-A, Ctrl-X to quit*
+`flash.sh` waits for the `NICENANO` USB drive, copies `zephyr.uf2` to it and the board reboots into the new firmware. It finds the drive wherever the distro mounts it (`/media/$USER` on Ubuntu, `/run/media/$USER` on Fedora and Arch).
 
-Your user must be in the `dialout` group. Messages printed before you open the port are lost.
+Flash `ot-node` to every mesh board. Flash `ot-rcp` to one board only, the Border Router radio.
 
-## Building and flashing the OpenThread node
-
-`ot-node/` is our copy of the nRF Connect SDK OpenThread CLI sample.
-Build it in the nRF Connect SDK v3.4.2 toolchain environment:
+<details>
+<summary>Without the scripts</summary>
 
 ```bash
 cd ~/ncs/v3.4.2
-west build -p always -b promicro_nrf52840/nrf52840/uf2 \
-  -d ~/code/networks/mesh-ipv6/build/ot-node ~/code/networks/mesh-ipv6/ot-node
+west build -p always -b promicro_nrf52840/nrf52840/uf2 -d <repo>/build/ot-node <repo>/ot-node
 ```
 
-Put the board in bootloader mode (double-tap RST), then flash:
+Short RST to GND twice quickly, a `NICENANO` drive appears. Copy `<repo>/build/ot-node/ot-node/zephyr/zephyr.uf2` onto it.
+</details>
 
-```sh
-cp ~/code/networks/mesh-ipv6/build/ot-node/ot-node/zephyr/zephyr.uf2 /run/media/$USER/NICENANO/
+## Opening the board shell
+
+The `ot-node` shell runs over USB serial. Open it with `picocom` or any other serial terminal:
+
+```bash
+ls -l /dev/serial/by-id/        # stable names, one per board
+picocom /dev/ttyACM0            # or the /dev/serial/by-id/... path
 ```
 
-*The mount path depends on the distro (for example `/media/$USER/NICENANO` on Ubuntu)*
+*Use Ctrl-A, Ctrl-X to quit. Messages printed before you open the port are lost.*
 
-Flash the same image to every board.
+The `ot-rcp` board has no shell. Do not open it with picocom while the Border Router is running.
 
 ## Setting up the network
 
@@ -67,10 +78,12 @@ ot dataset active -x
 
 *After a few seconds `ot state` shows `leader`. `ot dataset active -x` prints the network settings (the active dataset) as a hex string. Copy it to add other nodes to the network*
 
+If the Border Router is running, skip this: its network already exists, and its dataset is in `thread.dataset` (see [docs/border-router.md](docs/border-router.md#add-ot-node-boards-to-the-network)).
+
 ### Add a node
 
 ```
-ot dataset set active <hex from the first node>
+ot dataset set active <hex from the first node or thread.dataset>
 ot ifconfig up
 ot thread start
 ot state
@@ -104,3 +117,7 @@ All OpenThread commands start with `ot`. Press Tab to complete commands.
 | `fdxx:…:0:ff:fe00:XXXX` | RLOC | Routing address (`XXXX` = `ot rloc16`). Changes when the mesh layout changes |
 | `fdxx:…:<random>` | ML-EID | Stable address of the node. **Use this one for pings and apps** |
 | `fe80::…` | Link-local | Reaches neighbors one radio hop away only |
+
+## Border Router and Matter plug
+
+A laptop with one `ot-rcp` board becomes a Thread Border Router that connects the mesh to the normal network and controls an IKEA GRILLPLATS Matter plug over IPv6. Setup, scripts and troubleshooting: [docs/border-router.md](docs/border-router.md).

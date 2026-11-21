@@ -1,3 +1,6 @@
+/* nice!nano (promicro_nrf52840/nrf52840/uf2): send Spinel to the host
+ * over the board's built-in USB CDC ACM port.
+ */
 / {
 	chosen {
 		zephyr,ot-uart = &board_cdc_acm_uart;

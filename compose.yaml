@@ -1,0 +1,30 @@
+# OpenThread Border Router (OTBR) for the nRF52840 RCP board. Linux only:
+# it needs host networking and direct access to the USB serial port.
+#
+# Per-machine values (RCP serial port, LAN interface) live in .env.
+# Copy .env.example to .env and edit it before the first start.
+#
+#   docker compose up -d        # start
+#   docker compose logs -f      # watch logs
+#   docker compose down         # stop (network settings stay in ./otbr-data)
+
+services:
+  otbr:
+    # Pinned to one exact image, so every laptop runs the same OTBR. To update:
+    #   docker pull openthread/border-router:latest
+    #   docker image inspect openthread/border-router:latest --format '{{index .RepoDigests 0}}'
+    # then paste the result here and test with the RCP board.
+    image: openthread/border-router@sha256:b99d46b568f5b7933b3e3e2347219094a4e0771967adbbf32184c7a5def87caf
+    container_name: otbr
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    devices:
+      - "${RCP_DEVICE:?set RCP_DEVICE in .env}:/dev/ttyACM0"
+    environment:
+      OT_RCP_DEVICE: "spinel+hdlc+uart:///dev/ttyACM0?uart-baudrate=1000000"
+      OT_INFRA_IF: "${INFRA_IF:?set INFRA_IF in .env}"
+      OT_THREAD_IF: "wpan0"
+      OT_LOG_LEVEL: "${OT_LOG_LEVEL:-5}"
+    volumes:
+      - "${OTBR_DATA_DIR:-./otbr-data}:/data"
