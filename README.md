@@ -2,6 +2,8 @@
 
 A computer networks course project that builds an IPv6 mesh network (OpenThread over IEEE 802.15.4) on nRF52840 boards (nice!nano / `promicro_nrf52840`).
 
+A laptop with one board acts as a Thread Border Router, connects the mesh to the normal network and switches an IKEA GRILLPLATS Matter plug on and off over IPv6: **[docs/border-router.md](docs/border-router.md)**.
+
 ## Repository layout
 
 ```
